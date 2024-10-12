@@ -1,0 +1,15 @@
+{
+	"/": [
+		"src/routes/+page.server.js"
+	],
+	"/api/videos": [
+		"src/routes/api/videos/+server.ts"
+	],
+	"/api/videos/[id]": [
+		"src/routes/api/videos/[id]/+server.ts"
+	],
+	"/edit/[id]": [
+		"src/routes/edit/[id]/+page.server.js"
+	],
+	"/test": []
+}
