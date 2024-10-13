@@ -21,7 +21,7 @@
     transcriptUrl: video.transcriptUrl || '',
     title: video.title || '',
     description: video.description || '',
-    tags: [...video.tags]
+    tags: Array.isArray(video.tags) ? [...video.tags] : video.tags.split(',').map(tag => tag.trim())
   };
 
   let aiGeneratedData = {
@@ -34,6 +34,7 @@
   let selectedDescription = -1;
 
   $: isValidUrl = metaData.transcriptUrl && /^https?:\/\/.+/.test(metaData.transcriptUrl);
+  $: tagsMatch = JSON.stringify([...metaData.tags].sort()) === JSON.stringify([...aiGeneratedData.tags].sort());
 
   onMount(async () => {
     try {
@@ -43,16 +44,23 @@
         updateUnsavedChangesCount();
       }
     } catch (err) {
-      console.error('Error loading local changes:', err);
+      showError('Error loading local changes: ' + err.message);
     }
   });
 
   function closeModal() {
     showModal = false;
+    error = null;
   }
 
   function updateUnsavedChangesCount() {
     unsavedChangesCount = Object.keys(localChanges).length;
+  }
+
+  function showError(message) {
+    error = message;
+    modalMessage = message;
+    showModal = true;
   }
 
   async function handleSubmit() {
@@ -78,7 +86,7 @@
       modalMessage = 'Changes saved locally!';
       showModal = true;
     } catch (err) {
-      error = err.message;
+      showError(err.message);
     } finally {
       loading = false;
     }
@@ -89,7 +97,8 @@
   }
 
   function handleTagsBlur() {
-    video.tags = metaData.tags;
+    metaData.tags = metaData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
+    video.tags = [...metaData.tags];
     editingTags = false;
   }
 
@@ -156,7 +165,7 @@
       modalMessage = 'Changes synced to YouTube successfully!';
       showModal = true;
     } catch (err) {
-      error = err.message;
+      showError(err.message);
     } finally {
       loading = false;
     }
@@ -167,7 +176,7 @@
   <title>Edit Video: {video.title}</title>
 </svelte:head>
 
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto px-4 py-8 custom-scrollbar">
   <div class="flex justify-between items-center mb-4">
     <a href="/" class="inline-block text-blue-500 hover:text-blue-700">← Back to list</a>
     <button
@@ -182,136 +191,140 @@
   <h1 class="text-3xl font-bold mb-4">Edit Video: {video.title}</h1>
 
   <div class="mb-4">
-    <button
-      class="px-4 py-2 bg-blue-500 text-white rounded mr-2 {activeTab === 'youtube' ? 'bg-blue-700' : ''}"
-      on:click={() => activeTab = 'youtube'}
-    >
-      YouTube Video
-    </button>
-    <button
-      class="px-4 py-2 bg-blue-500 text-white rounded {activeTab === 'metadata' ? 'bg-blue-700' : ''}"
-      on:click={() => activeTab = 'metadata'}
-    >
-      Meta Data
-    </button>
+    <div class="border-b border-gray-200">
+      <nav class="-mb-px flex">
+        <button
+          class="py-2 px-4 border-b-2 font-medium text-sm leading-5 focus:outline-none {activeTab === 'youtube' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+          on:click={() => activeTab = 'youtube'}
+        >
+          YouTube Video
+        </button>
+        <button
+          class="ml-8 py-2 px-4 border-b-2 font-medium text-sm leading-5 focus:outline-none {activeTab === 'metadata' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+          on:click={() => activeTab = 'metadata'}
+        >
+          Meta Data
+        </button>
+      </nav>
+    </div>
   </div>
 
-  {#if activeTab === 'youtube'}
-    <form on:submit|preventDefault={handleSubmit} class="space-y-4">
-      <div>
-        <label for="title">Title:</label>
-        <input id="title" bind:value={video.title} required>
-      </div>
-      <div>
-        <label for="description">Description:</label>
-        <textarea id="description" bind:value={video.description} required rows="4"></textarea>
-      </div>
-      <div>
-        <label for="tags">Tags:</label>
-        {#if editingTags}
-          <input
-            id="tags"
-            bind:value={video.tags}
-            on:blur={handleTagsBlur}
-          >
-        {:else}
-          <div on:click={handleTagsClick} class="mt-1 flex flex-wrap gap-2 cursor-text p-2 border rounded-md bg-white">
-            {#each video.tags as tag}
-              <span class="bg-gray-200 px-2 py-1 rounded">{tag}</span>
-            {/each}
-          </div>
-        {/if}
-      </div>
-      <button type="submit" disabled={loading} class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
-        {loading ? 'Saving...' : 'Save Changes'}
-      </button>
-    </form>
-  {:else if activeTab === 'metadata'}
-    <div class="space-y-4 w-full">
-      <div>
-        <label for="transcriptUrl">Transcript URL:</label>
-        <input id="transcriptUrl" bind:value={metaData.transcriptUrl}>
-      </div>
-      <div>
-        <label for="metaTitle">Title:</label>
-        <input id="metaTitle" bind:value={metaData.title}>
-      </div>
-      <div>
-        <label for="metaDescription">Description:</label>
-        <textarea id="metaDescription" bind:value={metaData.description} rows="4"></textarea>
-      </div>
-      <div>
-        <label for="metaTags">Tags:</label>
-        <input id="metaTags" bind:value={metaData.tags}>
-      </div>
-      <div class="flex space-x-2">
-        <button on:click={saveMetaData} class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
-          Save new meta data
-        </button>
-        <button on:click={generateMetaData} disabled={!isValidUrl || generatingMetadata} class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50" title={!isValidUrl ? 'Please enter transcript URL' : ''}>
-          {#if generatingMetadata}
-            <LoadingSpinner size="w-5 h-5" />
+  <div class="mt-4">
+    {#if activeTab === 'youtube'}
+      <form on:submit|preventDefault={handleSubmit} class="space-y-4">
+        <div>
+          <label for="title" class="block text-sm font-medium text-gray-700">Title:</label>
+          <input id="title" bind:value={video.title} required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+        </div>
+        <div>
+          <label for="description" class="block text-sm font-medium text-gray-700">Description:</label>
+          <textarea id="description" bind:value={video.description} required rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"></textarea>
+        </div>
+        <div>
+          <label for="tags" class="block text-sm font-medium text-gray-700">Tags:</label>
+          {#if editingTags}
+            <input
+              id="tags"
+              bind:value={video.tags}
+              on:blur={handleTagsBlur}
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+            >
           {:else}
-            Generate meta data using AI
-          {/if}
-        </button>
-      </div>
-      {#if aiGeneratedData.titles.length > 0}
-        <div>
-          <h3 class="text-lg font-semibold mb-2">AI Generated Titles:</h3>
-          {#each aiGeneratedData.titles as title, index}
-            <div class="flex items-center justify-between mb-2 bg-gray-100 p-2 rounded">
-              <p class="flex-grow">{title}</p>
-              <button on:click={() => useTitle(index)} class="px-2 py-1 bg-blue-500 text-white rounded text-sm {selectedTitle === index ? 'bg-green-500' : ''}">
-                Use this
-              </button>
-            </div>
-          {/each}
-        </div>
-      {/if}
-      {#if aiGeneratedData.descriptions.length > 0}
-        <div>
-          <h3 class="text-lg font-semibold mb-2">AI Generated Descriptions:</h3>
-          {#each aiGeneratedData.descriptions as description, index}
-            <div class="flex items-center justify-between mb-2 bg-gray-100 p-2 rounded">
-              <p class="flex-grow">{description}</p>
-              <button on:click={() => useDescription(index)} class="px-2 py-1 bg-blue-500 text-white rounded text-sm {selectedDescription === index ? 'bg-green-500' : ''}">
-                Use this
-              </button>
-            </div>
-          {/each}
-        </div>
-      {/if}
-      {#if aiGeneratedData.tags.length > 0}
-        <div>
-          <h3 class="text-lg font-semibold mb-2">AI Generated Tags:</h3>
-          <div class="flex items-center justify-between mb-2 bg-gray-100 p-2 rounded">
-            <div class="flex flex-wrap gap-2">
-              {#each aiGeneratedData.tags as tag}
+            <div on:click={handleTagsClick} class="mt-1 flex flex-wrap gap-2 cursor-text p-2 border rounded-md bg-white">
+              {#each video.tags as tag}
                 <span class="bg-gray-200 px-2 py-1 rounded">{tag}</span>
               {/each}
             </div>
-            <button on:click={useTags} class="px-2 py-1 bg-blue-500 text-white rounded text-sm">
-              Use tags
-            </button>
-          </div>
+          {/if}
         </div>
-      {/if}
-    </div>
-  {/if}
+        <button type="submit" disabled={loading} class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+          {loading ? 'Saving...' : 'Save Changes'}
+        </button>
+      </form>
+    {:else if activeTab === 'metadata'}
+      <div class="space-y-4 w-full">
+        <div>
+          <label for="transcriptUrl" class="block text-sm font-medium text-gray-700">Transcript URL:</label>
+          <input id="transcriptUrl" bind:value={metaData.transcriptUrl} class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+        </div>
+        <div>
+          <label for="metaTitle" class="block text-sm font-medium text-gray-700">Title:</label>
+          <input id="metaTitle" bind:value={metaData.title} class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+        </div>
+        <div>
+          <label for="metaDescription" class="block text-sm font-medium text-gray-700">Description:</label>
+          <textarea id="metaDescription" bind:value={metaData.description} rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"></textarea>
+        </div>
+        <div>
+          <label for="metaTags" class="block text-sm font-medium text-gray-700">Tags:</label>
+          <input id="metaTags" bind:value={metaData.tags} on:blur={handleTagsBlur} class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+        </div>
+        <div class="flex space-x-2">
+          <button on:click={saveMetaData} class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+            Save new meta data
+          </button>
+          <button on:click={generateMetaData} disabled={!isValidUrl || generatingMetadata} class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50" title={!isValidUrl ? 'Please enter transcript URL' : ''}>
+            {#if generatingMetadata}
+              <LoadingSpinner size="w-5 h-5" />
+            {:else}
+              Generate meta data using AI
+            {/if}
+          </button>
+        </div>
+        {#if aiGeneratedData.titles.length > 0}
+          <div>
+            <h3 class="text-lg font-semibold mb-2">AI Generated Titles:</h3>
+            {#each aiGeneratedData.titles as title, index}
+              <div class="flex items-center justify-between mb-2 bg-gray-100 p-2 rounded">
+                <p class="flex-grow">{title}</p>
+                <button on:click={() => useTitle(index)} class="px-2 py-1 bg-blue-500 text-white rounded text-sm {selectedTitle === index ? 'bg-green-500' : ''}">
+                  Use this
+                </button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+        {#if aiGeneratedData.descriptions.length > 0}
+          <div>
+            <h3 class="text-lg font-semibold mb-2">AI Generated Descriptions:</h3>
+            {#each aiGeneratedData.descriptions as description, index}
+              <div class="flex items-center justify-between mb-2 bg-gray-100 p-2 rounded">
+                <p class="flex-grow">{description}</p>
+                <button on:click={() => useDescription(index)} class="px-2 py-1 bg-blue-500 text-white rounded text-sm {selectedDescription === index ? 'bg-green-500' : ''}">
+                  Use this
+                </button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+        {#if aiGeneratedData.tags.length > 0}
+          <div>
+            <h3 class="text-lg font-semibold mb-2">AI Generated Tags:</h3>
+            <div class="flex items-center justify-between mb-2 bg-gray-100 p-2 rounded">
+              <div class="flex flex-wrap gap-2">
+                {#each aiGeneratedData.tags as tag}
+                  <span class="bg-gray-200 px-2 py-1 rounded">{tag}</span>
+                {/each}
+              </div>
+              <button on:click={useTags} class="px-2 py-1 {tagsMatch ? 'bg-green-500' : 'bg-blue-500'} text-white rounded text-sm">
+                Use tags
+              </button>
+            </div>
+          </div>
+        {/if}
+      </div>
+    {/if}
+  </div>
 </div>
 
-<Modal show={showModal} message={modalMessage} onClose={closeModal} />
+<Modal 
+  show={showModal} 
+  message={modalMessage} 
+  onClose={closeModal}
+/>
 
 {#if loading}
   <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
     <LoadingSpinner size="w-16 h-16" />
-  </div>
-{/if}
-
-{#if error}
-  <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-    <strong class="font-bold">Error!</strong>
-    <span class="block sm:inline">{error}</span>
   </div>
 {/if}
