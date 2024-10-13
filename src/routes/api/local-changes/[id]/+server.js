@@ -2,6 +2,9 @@ import { json } from "@sveltejs/kit";
 import fs from "fs/promises";
 import path from "path";
 
+const dataDir = path.join(process.cwd(), "data");
+const localChangesPath = path.join(dataDir, "local-changes.json");
+
 export async function POST({ params, request }) {
   const { id } = params;
   const data = await request.json();
@@ -63,6 +66,33 @@ export async function PUT({ params, request }) {
         error: error.message,
         stack: error.stack,
       },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE({ params }) {
+  const { id } = params;
+
+  try {
+    // Read the current local changes
+    const fileContent = await fs.readFile(localChangesPath, "utf-8");
+    let localChanges = JSON.parse(fileContent);
+
+    // Remove the specified video
+    delete localChanges[id];
+
+    // Write the updated changes back to the file
+    await fs.writeFile(localChangesPath, JSON.stringify(localChanges, null, 2));
+
+    return json({
+      success: true,
+      message: `Video ${id} removed from local changes`,
+    });
+  } catch (error) {
+    console.error("Error removing video from local changes:", error);
+    return json(
+      { success: false, message: "Failed to remove video from local changes" },
       { status: 500 }
     );
   }

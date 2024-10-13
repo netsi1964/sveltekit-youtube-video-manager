@@ -1,0 +1,30 @@
+{
+  "videos": [
+    {
+      "id": "yt1",
+      "title": "Awesome YouTube Video 1",
+      "description": "This is an awesome video from YouTube",
+      "views": 10000,
+      "likes": 500,
+      "uploadDate": "2023-05-15",
+      "updated": "2023-05-15T14:30:00Z",
+      "tags": [
+        "awesome",
+        "youtube"
+      ]
+    },
+    {
+      "id": "yt2",
+      "title": "Amazing YouTube Video 2",
+      "description": "This is an amazing video from YouTube",
+      "views": 15000,
+      "likes": 750,
+      "uploadDate": "2023-05-16",
+      "updated": "2023-05-16T10:00:00Z",
+      "tags": [
+        "amazing",
+        "youtube"
+      ]
+    }
+  ]
+}

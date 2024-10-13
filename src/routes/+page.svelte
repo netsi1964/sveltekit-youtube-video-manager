@@ -3,10 +3,12 @@
   import { createFuzzySearch } from "$lib/FuzzySearch.js";
   import LoadingSpinner from "$lib/LoadingSpinner.svelte";
   import Tags from "$lib/Tags.svelte";
+  import { localChangesCount } from "$lib/stores/localChangesStore.js";
+  import { setError } from "$lib/stores/errorStore.js";
+  import { videoStore, setVideos } from "$lib/stores/videoStore.js";
 
   export let data;
 
-  let videos = [];
   let filteredVideos = [];
   let searchTerm = "";
   let fuse;
@@ -17,12 +19,19 @@
   let sortField = "title";
   let sortDirection = "asc";
   let error = null;
+  let fetchingFromYouTube = false;
+
+  $: {
+    if (data.videos && Array.isArray(data.videos)) {
+      setVideos(data.videos);
+    }
+  }
 
   $: {
     if (fuse && searchTerm) {
       filteredVideos = fuse.search(searchTerm).map((result) => result.item);
     } else {
-      filteredVideos = [...videos];
+      filteredVideos = [...$videoStore];
     }
 
     // Sort the filtered videos
@@ -41,26 +50,31 @@
     currentPage * itemsPerPage
   );
 
-  onMount(async () => {
+  onMount(() => {
+    if ($videoStore.length > 0) {
+      fuse = createFuzzySearch($videoStore);
+    }
+    loading = false;
+  });
+
+  async function fetchVideosFromYouTube() {
+    fetchingFromYouTube = true;
     try {
-      const response = await fetch("/api/videos");
+      const response = await fetch("/api/fetch-youtube-videos", {
+        method: "POST",
+      });
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error("Failed to fetch videos from YouTube");
       }
       const data = await response.json();
-      videos = data.videos || [];
-      console.log("Loaded videos:", videos.length);
-      fuse = createFuzzySearch(videos, {
-        keys: ["title", "description", "tags"],
-        threshold: 0.4,
-      });
-    } catch (err) {
-      console.error("Error fetching videos:", err);
-      error = err.message;
+      setVideos(data.videos);
+      fuse = createFuzzySearch(data.videos);
+    } catch (error) {
+      setError(error.message);
     } finally {
-      loading = false;
+      fetchingFromYouTube = false;
     }
-  });
+  }
 
   function handleSort(field) {
     if (sortField === field) {
@@ -78,42 +92,34 @@
   function handleTagChange(video, event) {
     const { tags } = event.detail;
     video.tags = tags;
-    videos = [...videos]; // Trigger a re-render
+    videoStore.update((videos) =>
+      videos.map((v) => (v.id === video.id ? { ...v, tags } : v))
+    );
   }
 </script>
 
 <svelte:head>
-  <title>{data.title}</title>
+  <title>{data.title || "Video Manager"}</title>
 </svelte:head>
 
-<div class="container mx-auto px-4 py-8">
-  <div class="fixed top-0 left-0 right-0 bg-white z-10 shadow-md">
-    <div class="container mx-auto px-4 py-4">
-      <h1 class="text-3xl font-bold mb-4">{data.title}</h1>
-      <p class="mb-4">{data.message}</p>
-
-      <div class="mb-4">
-        <input
-          type="text"
-          placeholder="Search videos..."
-          bind:value={searchTerm}
-          class="w-full p-2 border rounded"
-        />
-      </div>
-    </div>
-  </div>
-
-  <div class="mt-32">
-    {#if loading}
-      <div class="flex justify-center items-center h-64">
-        <LoadingSpinner />
-      </div>
-    {:else if error}
-      <p class="text-red-500">Error: {error}</p>
-    {:else if videos.length === 0}
-      <p>No videos found.</p>
+<div class="mt-4">
+  {#if loading}
+    <LoadingSpinner />
+  {:else if error}
+    <p class="text-red-500">Error: {error}</p>
+  {:else}
+    {#if $videoStore.length === 0}
+      <p class="text-center mb-4">No videos found.</p>
     {:else}
-      <div class="mb-2">Matches {filteredVideos.length} of {videos.length}</div>
+      <input
+        type="text"
+        placeholder="Search videos..."
+        bind:value={searchTerm}
+        class="w-full p-2 border rounded mb-4"
+      />
+      <div class="mb-2">
+        Matches {filteredVideos.length} of {$videoStore.length}
+      </div>
       <div class="overflow-x-auto">
         <table class="min-w-full bg-white">
           <thead>
@@ -121,48 +127,53 @@
               <th
                 class="px-4 py-2 cursor-pointer"
                 on:click={() => handleSort("title")}
-                >Title {sortField === "title"
+              >
+                Title {sortField === "title"
                   ? sortDirection === "asc"
                     ? "▲"
                     : "▼"
-                  : ""}</th
-              >
+                  : ""}
+              </th>
               <th
                 class="px-4 py-2 cursor-pointer"
                 on:click={() => handleSort("views")}
-                >Views {sortField === "views"
+              >
+                Views {sortField === "views"
                   ? sortDirection === "asc"
                     ? "▲"
                     : "▼"
-                  : ""}</th
-              >
+                  : ""}
+              </th>
               <th
                 class="px-4 py-2 cursor-pointer"
                 on:click={() => handleSort("likes")}
-                >Likes {sortField === "likes"
+              >
+                Likes {sortField === "likes"
                   ? sortDirection === "asc"
                     ? "▲"
                     : "▼"
-                  : ""}</th
-              >
+                  : ""}
+              </th>
               <th
                 class="px-4 py-2 cursor-pointer"
                 on:click={() => handleSort("uploadDate")}
-                >Upload Date {sortField === "uploadDate"
+              >
+                Upload Date {sortField === "uploadDate"
                   ? sortDirection === "asc"
                     ? "▲"
                     : "▼"
-                  : ""}</th
-              >
+                  : ""}
+              </th>
               <th
                 class="px-4 py-2 cursor-pointer"
                 on:click={() => handleSort("updated")}
-                >Last Updated {sortField === "updated"
+              >
+                Last Updated {sortField === "updated"
                   ? sortDirection === "asc"
                     ? "▲"
                     : "▼"
-                  : ""}</th
-              >
+                  : ""}
+              </th>
               <th class="px-4 py-2">Tags</th>
             </tr>
           </thead>
@@ -176,9 +187,9 @@
                 <td class="border px-4 py-2">{video.views.toLocaleString()}</td>
                 <td class="border px-4 py-2">{video.likes.toLocaleString()}</td>
                 <td class="border px-4 py-2">{video.uploadDate}</td>
-                <td class="border px-4 py-2"
-                  >{new Date(video.updated).toLocaleString()}</td
-                >
+                <td class="border px-4 py-2">
+                  {new Date(video.updated).toLocaleString()}
+                </td>
                 <td class="border px-4 py-2">
                   <Tags
                     readOnly={true}
@@ -210,5 +221,26 @@
         </button>
       </div>
     {/if}
-  </div>
+
+    <div class="mt-8 text-center">
+      <button
+        on:click={fetchVideosFromYouTube}
+        class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+      >
+        Fetch Videos from YouTube
+      </button>
+    </div>
+  {/if}
 </div>
+
+{#if fetchingFromYouTube}
+  <div
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+  >
+    <div class="bg-white p-8 rounded-lg shadow-lg">
+      <h2 class="text-2xl font-bold mb-4">Fetching Videos from YouTube</h2>
+      <LoadingSpinner />
+      <p class="mt-4">Please wait while we retrieve your videos...</p>
+    </div>
+  </div>
+{/if}
