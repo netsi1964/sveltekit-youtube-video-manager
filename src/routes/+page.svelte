@@ -1,33 +1,34 @@
 <script>
-  import { onMount } from 'svelte';
-  import { createFuzzySearch } from '$lib/FuzzySearch.js';
-  import LoadingSpinner from '$lib/LoadingSpinner.svelte';
+  import { onMount } from "svelte";
+  import { createFuzzySearch } from "$lib/FuzzySearch.js";
+  import LoadingSpinner from "$lib/LoadingSpinner.svelte";
+  import Tags from "$lib/Tags.svelte";
 
   export let data;
 
   let videos = [];
   let filteredVideos = [];
-  let searchTerm = '';
+  let searchTerm = "";
   let fuse;
   let loading = true;
   let currentPage = 1;
   let itemsPerPage = 10;
   let totalPages = 1;
-  let sortField = 'title';
-  let sortDirection = 'asc';
+  let sortField = "title";
+  let sortDirection = "asc";
   let error = null;
 
   $: {
     if (fuse && searchTerm) {
-      filteredVideos = fuse.search(searchTerm).map(result => result.item);
+      filteredVideos = fuse.search(searchTerm).map((result) => result.item);
     } else {
       filteredVideos = [...videos];
     }
-    
+
     // Sort the filtered videos
     filteredVideos = filteredVideos.sort((a, b) => {
-      if (a[sortField] < b[sortField]) return sortDirection === 'asc' ? -1 : 1;
-      if (a[sortField] > b[sortField]) return sortDirection === 'asc' ? 1 : -1;
+      if (a[sortField] < b[sortField]) return sortDirection === "asc" ? -1 : 1;
+      if (a[sortField] > b[sortField]) return sortDirection === "asc" ? 1 : -1;
       return 0;
     });
 
@@ -35,23 +36,26 @@
     currentPage = Math.min(currentPage, totalPages || 1);
   }
 
-  $: paginatedVideos = filteredVideos.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  $: paginatedVideos = filteredVideos.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   onMount(async () => {
     try {
-      const response = await fetch('/api/videos');
+      const response = await fetch("/api/videos");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
       videos = data.videos || [];
-      console.log('Loaded videos:', videos.length);
+      console.log("Loaded videos:", videos.length);
       fuse = createFuzzySearch(videos, {
-        keys: ['title', 'description', 'tags'],
+        keys: ["title", "description", "tags"],
         threshold: 0.4,
       });
     } catch (err) {
-      console.error('Error fetching videos:', err);
+      console.error("Error fetching videos:", err);
       error = err.message;
     } finally {
       loading = false;
@@ -60,15 +64,21 @@
 
   function handleSort(field) {
     if (sortField === field) {
-      sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+      sortDirection = sortDirection === "asc" ? "desc" : "asc";
     } else {
       sortField = field;
-      sortDirection = 'asc';
+      sortDirection = "asc";
     }
   }
 
   function handleRowClick(id) {
     window.location.href = `/edit/${id}`;
+  }
+
+  function handleTagChange(video, event) {
+    const { tags } = event.detail;
+    video.tags = tags;
+    videos = [...videos]; // Trigger a re-render
   }
 </script>
 
@@ -108,21 +118,74 @@
         <table class="min-w-full bg-white">
           <thead>
             <tr>
-              <th class="px-4 py-2 cursor-pointer" on:click={() => handleSort('title')}>Title {sortField === 'title' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}</th>
-              <th class="px-4 py-2 cursor-pointer" on:click={() => handleSort('views')}>Views {sortField === 'views' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}</th>
-              <th class="px-4 py-2 cursor-pointer" on:click={() => handleSort('likes')}>Likes {sortField === 'likes' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}</th>
-              <th class="px-4 py-2 cursor-pointer" on:click={() => handleSort('uploadDate')}>Upload Date {sortField === 'uploadDate' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}</th>
-              <th class="px-4 py-2 cursor-pointer" on:click={() => handleSort('updated')}>Last Updated {sortField === 'updated' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}</th>
+              <th
+                class="px-4 py-2 cursor-pointer"
+                on:click={() => handleSort("title")}
+                >Title {sortField === "title"
+                  ? sortDirection === "asc"
+                    ? "▲"
+                    : "▼"
+                  : ""}</th
+              >
+              <th
+                class="px-4 py-2 cursor-pointer"
+                on:click={() => handleSort("views")}
+                >Views {sortField === "views"
+                  ? sortDirection === "asc"
+                    ? "▲"
+                    : "▼"
+                  : ""}</th
+              >
+              <th
+                class="px-4 py-2 cursor-pointer"
+                on:click={() => handleSort("likes")}
+                >Likes {sortField === "likes"
+                  ? sortDirection === "asc"
+                    ? "▲"
+                    : "▼"
+                  : ""}</th
+              >
+              <th
+                class="px-4 py-2 cursor-pointer"
+                on:click={() => handleSort("uploadDate")}
+                >Upload Date {sortField === "uploadDate"
+                  ? sortDirection === "asc"
+                    ? "▲"
+                    : "▼"
+                  : ""}</th
+              >
+              <th
+                class="px-4 py-2 cursor-pointer"
+                on:click={() => handleSort("updated")}
+                >Last Updated {sortField === "updated"
+                  ? sortDirection === "asc"
+                    ? "▲"
+                    : "▼"
+                  : ""}</th
+              >
+              <th class="px-4 py-2">Tags</th>
             </tr>
           </thead>
           <tbody>
             {#each paginatedVideos as video (video.id)}
-              <tr class="hover:bg-gray-100 cursor-pointer" on:click={() => handleRowClick(video.id)}>
+              <tr
+                class="hover:bg-gray-100 cursor-pointer"
+                on:click={() => handleRowClick(video.id)}
+              >
                 <td class="border px-4 py-2">{video.title}</td>
                 <td class="border px-4 py-2">{video.views.toLocaleString()}</td>
                 <td class="border px-4 py-2">{video.likes.toLocaleString()}</td>
                 <td class="border px-4 py-2">{video.uploadDate}</td>
-                <td class="border px-4 py-2">{new Date(video.updated).toLocaleString()}</td>
+                <td class="border px-4 py-2"
+                  >{new Date(video.updated).toLocaleString()}</td
+                >
+                <td class="border px-4 py-2">
+                  <Tags
+                    readOnly={true}
+                    bind:tags={video.tags}
+                    on:change={(event) => handleTagChange(video, event)}
+                  />
+                </td>
               </tr>
             {/each}
           </tbody>
