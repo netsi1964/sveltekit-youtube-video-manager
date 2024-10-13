@@ -22,7 +22,8 @@
     <div class="flex items-center justify-between h-16 w-full">
       <div class="flex items-center w-full">
         <div class="flex-shrink-0">
-          <span class="text-white text-xl font-bold">Video Editor</span>
+          <span class="text-white text-xl font-bold">Youtube video manager</span
+          >
         </div>
         <div class="hidden md:block">
           <div class="ml-10 flex items-baseline space-x-4">

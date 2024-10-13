@@ -36,8 +36,10 @@
 
     // Sort the filtered videos
     filteredVideos = filteredVideos.sort((a, b) => {
-      if (a[sortField] < b[sortField]) return sortDirection === "asc" ? -1 : 1;
-      if (a[sortField] > b[sortField]) return sortDirection === "asc" ? 1 : -1;
+      const aValue = a.snippet ? a.snippet[sortField] : a[sortField];
+      const bValue = b.snippet ? b.snippet[sortField] : b[sortField];
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
       return 0;
     });
 
@@ -52,10 +54,25 @@
 
   onMount(() => {
     if ($videoStore.length > 0) {
-      fuse = createFuzzySearch($videoStore);
+      initializeFuseSearch();
     }
     loading = false;
   });
+
+  function initializeFuseSearch() {
+    const options = {
+      keys: [
+        "snippet.title",
+        "snippet.description",
+        "snippet.tags",
+        "snippet.channelTitle",
+        "statistics.viewCount",
+        "statistics.likeCount",
+      ],
+      threshold: 0.4,
+    };
+    fuse = createFuzzySearch($videoStore, options);
+  }
 
   async function fetchVideosFromYouTube() {
     fetchingFromYouTube = true;
@@ -68,7 +85,7 @@
       }
       const data = await response.json();
       setVideos(data.videos);
-      fuse = createFuzzySearch(data.videos);
+      initializeFuseSearch();
     } catch (error) {
       setError(error.message);
     } finally {
@@ -89,11 +106,16 @@
     window.location.href = `/edit/${id}`;
   }
 
+  function getVideoTags(video) {
+    return video.snippet && video.snippet.tags ? video.snippet.tags : [];
+  }
+
   function handleTagChange(video, event) {
     const { tags } = event.detail;
-    video.tags = tags;
+    if (!video.snippet) video.snippet = {};
+    video.snippet.tags = tags;
     videoStore.update((videos) =>
-      videos.map((v) => (v.id === video.id ? { ...v, tags } : v))
+      videos.map((v) => (v.id === video.id ? video : v))
     );
   }
 </script>
@@ -117,13 +139,16 @@
         bind:value={searchTerm}
         class="w-full p-2 border rounded mb-4"
       />
-      <div class="mb-2">
-        Matches {filteredVideos.length} of {$videoStore.length}
-      </div>
+      {#if searchTerm}
+        <div class="mb-2">
+          Matches {filteredVideos.length} of {$videoStore.length}
+        </div>
+      {/if}
       <div class="overflow-x-auto">
         <table class="min-w-full bg-white">
           <thead>
             <tr>
+              <th class="px-4 py-2">Thumbnail</th>
               <th
                 class="px-4 py-2 cursor-pointer"
                 on:click={() => handleSort("title")}
@@ -136,9 +161,9 @@
               </th>
               <th
                 class="px-4 py-2 cursor-pointer"
-                on:click={() => handleSort("views")}
+                on:click={() => handleSort("viewCount")}
               >
-                Views {sortField === "views"
+                Views {sortField === "viewCount"
                   ? sortDirection === "asc"
                     ? "▲"
                     : "▼"
@@ -146,9 +171,9 @@
               </th>
               <th
                 class="px-4 py-2 cursor-pointer"
-                on:click={() => handleSort("likes")}
+                on:click={() => handleSort("likeCount")}
               >
-                Likes {sortField === "likes"
+                Likes {sortField === "likeCount"
                   ? sortDirection === "asc"
                     ? "▲"
                     : "▼"
@@ -156,9 +181,9 @@
               </th>
               <th
                 class="px-4 py-2 cursor-pointer"
-                on:click={() => handleSort("uploadDate")}
+                on:click={() => handleSort("publishedAt")}
               >
-                Upload Date {sortField === "uploadDate"
+                Upload Date {sortField === "publishedAt"
                   ? sortDirection === "asc"
                     ? "▲"
                     : "▼"
@@ -166,9 +191,9 @@
               </th>
               <th
                 class="px-4 py-2 cursor-pointer"
-                on:click={() => handleSort("updated")}
+                on:click={() => handleSort("publishedAt")}
               >
-                Last Updated {sortField === "updated"
+                Last Updated {sortField === "publishedAt"
                   ? sortDirection === "asc"
                     ? "▲"
                     : "▼"
@@ -183,17 +208,36 @@
                 class="hover:bg-gray-100 cursor-pointer"
                 on:click={() => handleRowClick(video.id)}
               >
-                <td class="border px-4 py-2">{video.title}</td>
-                <td class="border px-4 py-2">{video.views.toLocaleString()}</td>
-                <td class="border px-4 py-2">{video.likes.toLocaleString()}</td>
-                <td class="border px-4 py-2">{video.uploadDate}</td>
                 <td class="border px-4 py-2">
-                  {new Date(video.updated).toLocaleString()}
+                  <img
+                    src={video.snippet?.thumbnails?.default?.url || ""}
+                    alt={video.snippet?.title || "No title"}
+                    width="120"
+                    height="90"
+                    class="object-cover"
+                  />
+                </td>
+                <td class="border px-4 py-2"
+                  >{video.snippet?.title || "No title"}</td
+                >
+                <td class="border px-4 py-2"
+                  >{video.statistics?.viewCount?.toLocaleString() || "N/A"}</td
+                >
+                <td class="border px-4 py-2"
+                  >{video.statistics?.likeCount?.toLocaleString() || "N/A"}</td
+                >
+                <td class="border px-4 py-2"
+                  >{video.snippet?.publishedAt || "N/A"}</td
+                >
+                <td class="border px-4 py-2">
+                  {video.snippet?.publishedAt
+                    ? new Date(video.snippet.publishedAt).toLocaleString()
+                    : "N/A"}
                 </td>
                 <td class="border px-4 py-2">
                   <Tags
                     readOnly={true}
-                    bind:tags={video.tags}
+                    tags={getVideoTags(video)}
                     on:change={(event) => handleTagChange(video, event)}
                   />
                 </td>
@@ -203,23 +247,25 @@
         </table>
       </div>
 
-      <div class="mt-4 flex justify-between items-center">
-        <button
-          on:click={() => currentPage--}
-          disabled={currentPage === 1}
-          class="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
-        >
-          Previous
-        </button>
-        <span>Page {currentPage} of {totalPages}</span>
-        <button
-          on:click={() => currentPage++}
-          disabled={currentPage === totalPages}
-          class="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
-        >
-          Next
-        </button>
-      </div>
+      {#if totalPages > 1}
+        <div class="mt-4 flex justify-between items-center">
+          <button
+            on:click={() => currentPage--}
+            disabled={currentPage === 1}
+            class="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
+          >
+            Previous
+          </button>
+          <span>Page {currentPage} of {totalPages}</span>
+          <button
+            on:click={() => currentPage++}
+            disabled={currentPage === totalPages}
+            class="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
+          >
+            Next
+          </button>
+        </div>
+      {/if}
     {/if}
 
     <div class="mt-8 text-center">

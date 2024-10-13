@@ -26,11 +26,11 @@
   // Meta data
   let metaData = {
     transcriptUrl: video?.transcriptUrl || "",
-    title: video?.title || "",
-    description: video?.description || "",
-    tags: Array.isArray(video?.tags)
-      ? [...video.tags]
-      : (video?.tags || "").split(",").map((tag) => tag.trim()),
+    title: video?.snippet.title || "",
+    description: video?.snippet.description || "",
+    tags: Array.isArray(video?.snippet.tags)
+      ? [...video.snippet.tags]
+      : (video?.snippet.tags || "").split(",").map((tag) => tag.trim()),
   };
 
   let aiGeneratedData = {
@@ -116,7 +116,7 @@
       .split(",")
       .map((tag) => tag.trim())
       .filter((tag) => tag !== "");
-    video.tags = [...metaData.tags];
+    video.snippet.tags = [...metaData.tags];
     editingTags = false;
   }
 
@@ -173,7 +173,7 @@
   }
 
   function handleTagChange(event) {
-    video.tags = event.detail.tags;
+    video.snippet.tags = event.detail.tags;
   }
 
   function handleMetaTagsChange(event) {
@@ -194,7 +194,7 @@
 <div class="custom-scrollbar">
   {#if video}
     <h1 class="text-3xl font-bold mb-4">
-      Edit Video: {video.title}{hasUnsavedChanges ? " *" : ""}
+      Edit Video: {video.snippet.title}{hasUnsavedChanges ? " *" : ""}
     </h1>
 
     <div class="mb-4">
@@ -231,7 +231,7 @@
             >
             <input
               id="title"
-              bind:value={video.title}
+              bind:value={video.snippet.title}
               required
               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
             />
@@ -244,7 +244,7 @@
             >
             <textarea
               id="description"
-              bind:value={video.description}
+              bind:value={video.snippet.description}
               required
               rows="4"
               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
@@ -254,7 +254,7 @@
             <label for="tags" class="block text-sm font-medium text-gray-700"
               >Tags:</label
             >
-            <Tags bind:tags={video.tags} on:change={handleTagChange} />
+            <Tags bind:tags={video.snippet.tags} on:change={handleTagChange} />
           </div>
           <button
             type="submit"

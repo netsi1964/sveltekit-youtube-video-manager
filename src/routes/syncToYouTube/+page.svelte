@@ -3,6 +3,7 @@
   import { fade } from "svelte/transition";
   import { localChangesCount } from "$lib/stores/localChangesStore.js";
   import { setError } from "$lib/stores/errorStore.js";
+  import Tags from "$lib/Tags.svelte";
 
   let localChanges = [];
   let selectedVideos = {};
@@ -48,7 +49,7 @@
 
     for (let i = 0; i < videosToSync.length; i++) {
       if (!isSyncing) break; // Check if syncing was cancelled
-      currentVideo = videosToSync[i].title || videosToSync[i].id;
+      currentVideo = videosToSync[i].snippet?.title || videosToSync[i].id;
       currentVideoIndex = i + 1;
       const success = await simulateSyncToYouTube(videosToSync[i]);
       if (success) {
@@ -58,23 +59,18 @@
       progress = ((i + 1) / videosToSync.length) * 100;
     }
 
-    if (isSyncing) {
-      syncDuration = Math.round((Date.now() - startTime) / 1000);
-      syncComplete = true;
-    }
+    syncDuration = Math.round((Date.now() - startTime) / 1000);
+    syncComplete = true;
     isSyncing = false;
     currentVideo = "";
     progress = 0;
     currentVideoIndex = 0;
-
-    // After syncing is complete
-    await loadLocalChanges();
   }
 
   async function simulateSyncToYouTube(video) {
     // Simulate API call to sync video to YouTube
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    console.log(`Synced video ${video.title || video.id} to YouTube`);
+    console.log(`Synced video ${video.snippet?.title || video.id} to YouTube`);
     return true; // Assume success for this simulation
   }
 
@@ -95,8 +91,13 @@
     isSyncing = false;
   }
 
-  function closeSyncModal() {
+  async function closeSyncModal() {
     syncComplete = false;
+    await loadLocalChanges(); // Reload local changes after closing the modal
+  }
+
+  function getVideoTags(video) {
+    return video.snippet && video.snippet.tags ? video.snippet.tags : [];
   }
 </script>
 
@@ -108,44 +109,63 @@
   <h1 class="text-3xl font-bold mb-6">Sync Videos to YouTube</h1>
 
   {#if localChanges.length > 0}
-    <div class="bg-white shadow-md rounded-lg overflow-hidden">
-      <ul class="divide-y divide-gray-200">
-        {#each localChanges as video}
-          <li class="p-4 hover:bg-gray-50 transition duration-150 ease-in-out">
-            <div class="flex items-center space-x-4">
-              <input
-                type="checkbox"
-                bind:checked={selectedVideos[video.id]}
-                class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-gray-900 truncate">
-                  {video.title || video.id}
-                </p>
-                {#if video.description}
-                  <p class="text-sm text-gray-500 truncate">
-                    {video.description}
-                  </p>
-                {/if}
-                {#if video.tags && video.tags.length > 0}
-                  <div class="mt-1 flex flex-wrap gap-1">
-                    {#each video.tags as tag}
-                      <span
-                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
-                      >
-                        {tag}
-                      </span>
-                    {/each}
-                  </div>
-                {/if}
-              </div>
-              <div class="text-sm text-gray-500">
-                Last updated: {new Date(video.updated).toLocaleString()}
-              </div>
-            </div>
-          </li>
-        {/each}
-      </ul>
+    <div class="overflow-x-auto">
+      <table class="min-w-full bg-white">
+        <thead>
+          <tr>
+            <th class="px-4 py-2">Select</th>
+            <th class="px-4 py-2">Thumbnail</th>
+            <th class="px-4 py-2">Title</th>
+            <th class="px-4 py-2">Views</th>
+            <th class="px-4 py-2">Likes</th>
+            <th class="px-4 py-2">Upload Date</th>
+            <th class="px-4 py-2">Last Updated</th>
+            <th class="px-4 py-2">Tags</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each localChanges as video (video.id)}
+            <tr class="hover:bg-gray-100">
+              <td class="border px-4 py-2">
+                <input
+                  type="checkbox"
+                  bind:checked={selectedVideos[video.id]}
+                  class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+              </td>
+              <td class="border px-4 py-2">
+                <img
+                  src={video.snippet?.thumbnails?.default?.url || ""}
+                  alt={video.snippet?.title || "No title"}
+                  width="120"
+                  height="90"
+                  class="object-cover"
+                />
+              </td>
+              <td class="border px-4 py-2"
+                >{video.snippet?.title || "No title"}</td
+              >
+              <td class="border px-4 py-2"
+                >{video.statistics?.viewCount?.toLocaleString() || "N/A"}</td
+              >
+              <td class="border px-4 py-2"
+                >{video.statistics?.likeCount?.toLocaleString() || "N/A"}</td
+              >
+              <td class="border px-4 py-2"
+                >{video.snippet?.publishedAt || "N/A"}</td
+              >
+              <td class="border px-4 py-2">
+                {video.snippet?.publishedAt
+                  ? new Date(video.snippet.publishedAt).toLocaleString()
+                  : "N/A"}
+              </td>
+              <td class="border px-4 py-2">
+                <Tags readOnly={true} tags={getVideoTags(video)} />
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
     </div>
 
     <div class="mt-6 flex justify-center">
