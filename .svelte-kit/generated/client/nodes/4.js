@@ -1,1 +1,1 @@
-export { default as component } from "../../../../src/routes/syncToYouTube/+page.svelte";
+export { default as component } from "../../../../src/routes/some-other-page/+page.svelte";

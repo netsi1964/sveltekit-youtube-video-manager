@@ -5,10 +5,10 @@ import path from "path";
 export async function GET({ params }) {
   try {
     const { id } = params;
-    console.log(`[GET /api/videos/${id}] Attempting to fetch video`);
+    //     console.log(`[GET /api/videos/${id}] Attempting to fetch video`);
 
     const dataPath = path.join(process.cwd(), "data", "videos.json");
-    console.log(`[GET /api/videos/${id}] Reading file from: ${dataPath}`);
+    // console.log(`[GET /api/videos/${id}] Reading file from: ${dataPath}`);
 
     const fileExists = await fs
       .access(dataPath)
@@ -30,11 +30,11 @@ export async function GET({ params }) {
     const video = parsedData.videos.find((v) => v.id === id);
 
     if (!video) {
-      console.log(`[GET /api/videos/${id}] Video not found`);
+      // console.log(`[GET /api/videos/${id}] Video not found`);
       return json({ error: `Video with id ${id} not found` }, { status: 404 });
     }
 
-    console.log(`[GET /api/videos/${id}] Returning video`);
+    // console.log(`[GET /api/videos/${id}] Returning video`);
     return json(video);
   } catch (err) {
     console.error(`[GET /api/videos/${id}] Error reading video`);

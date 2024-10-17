@@ -19,6 +19,7 @@
   "type": "module",
   "dependencies": {
     "@faker-js/faker": "^8.0.2",
-    "fuse.js": "^6.6.2"
+    "fuse.js": "^6.6.2",
+    "google-auth-library": "^9.14.2"
   }
 }

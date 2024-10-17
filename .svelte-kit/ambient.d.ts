@@ -26,6 +26,9 @@
  * ```
  */
 declare module '$env/static/private' {
+	export const GOOGLE_CLIENT_ID: string;
+	export const GOOGLE_CLIENT_SECRET: string;
+	export const AUTH_SECRET: string;
 	export const MANPATH: string;
 	export const TERM_PROGRAM: string;
 	export const NODE: string;
@@ -52,6 +55,7 @@ declare module '$env/static/private' {
 	export const PATH: string;
 	export const npm_package_json: string;
 	export const _: string;
+	export const LaunchInstanceID: string;
 	export const npm_config_userconfig: string;
 	export const npm_config_init_module: string;
 	export const USER_ZDOTDIR: string;
@@ -82,6 +86,7 @@ declare module '$env/static/private' {
 	export const GIT_ASKPASS: string;
 	export const INFOPATH: string;
 	export const HOMEBREW_CELLAR: string;
+	export const SECURITYSESSIONID: string;
 	export const npm_node_execpath: string;
 	export const npm_config_prefix: string;
 	export const COLORTERM: string;
@@ -98,7 +103,7 @@ declare module '$env/static/private' {
  * ```
  */
 declare module '$env/static/public' {
-	
+	export const PUBLIC_YOUTUBE_API_KEY: string;
 }
 
 /**
@@ -115,6 +120,9 @@ declare module '$env/static/public' {
  */
 declare module '$env/dynamic/private' {
 	export const env: {
+		GOOGLE_CLIENT_ID: string;
+		GOOGLE_CLIENT_SECRET: string;
+		AUTH_SECRET: string;
 		MANPATH: string;
 		TERM_PROGRAM: string;
 		NODE: string;
@@ -141,6 +149,7 @@ declare module '$env/dynamic/private' {
 		PATH: string;
 		npm_package_json: string;
 		_: string;
+		LaunchInstanceID: string;
 		npm_config_userconfig: string;
 		npm_config_init_module: string;
 		USER_ZDOTDIR: string;
@@ -171,6 +180,7 @@ declare module '$env/dynamic/private' {
 		GIT_ASKPASS: string;
 		INFOPATH: string;
 		HOMEBREW_CELLAR: string;
+		SECURITYSESSIONID: string;
 		npm_node_execpath: string;
 		npm_config_prefix: string;
 		COLORTERM: string;
@@ -192,6 +202,7 @@ declare module '$env/dynamic/private' {
  */
 declare module '$env/dynamic/public' {
 	export const env: {
+		PUBLIC_YOUTUBE_API_KEY: string;
 		[key: `PUBLIC_${string}`]: string | undefined;
 	}
 }

@@ -5,14 +5,14 @@ import path from "path";
 export async function GET() {
   try {
     const dataPath = path.join(process.cwd(), "data", "videos.json");
-    console.log("Attempting to read file:", dataPath);
+    // console.log("Attempting to read file:", dataPath);
 
     const fileExists = await fs
       .access(dataPath)
       .then(() => true)
       .catch(() => false);
     if (!fileExists) {
-      console.log("Videos data file not found. Returning empty array.");
+      // console.log("Videos data file not found. Returning empty array.");
       return json({ videos: [] });
     }
 
@@ -20,7 +20,7 @@ export async function GET() {
     const videos = JSON.parse(data);
     return json(videos); // This should already be in the format { videos: [...] }
   } catch (err) {
-    console.error("Error reading videos:", err);
+    // console.error("Error reading videos:", err);
     return json(
       { error: "Failed to read videos", details: err.message },
       { status: 500 }
