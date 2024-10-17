@@ -1,5 +1,6 @@
 <script>
   import { page } from "$app/stores";
+  import { user } from "./stores/userStore.js";
   import { localChangesCount } from "./stores/localChangesStore.js";
   import { videoStore } from "./stores/videoStore.js";
 
@@ -40,7 +41,22 @@
             {/each}
           </div>
         </div>
-        <div class="text-white text-sm ml-auto mr-4">
+        <div class="flex gap-2 items-center text-white text-sm ml-auto mr-4">
+          {#if $user}
+            {$user.name}
+          {:else}
+            <form class="auth-form" method="post" action="?/OAuth2">
+              <div>
+                <button
+                  class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                  type="submit"
+                >
+                  Login with Google
+                </button>
+              </div>
+            </form>
+          {/if}
+
           Total Videos: {videoCount}
         </div>
       </div>

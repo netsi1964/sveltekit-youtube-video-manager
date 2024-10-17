@@ -128,22 +128,6 @@
   <title>{data.title || "Video Manager"}</title>
 </svelte:head>
 
-{$user}
-{#if $user}
-  <p>Hello, {$user.name}! This is some other page.</p>
-{:else}
-  <form class="auth-form" method="post" action="?/OAuth2">
-    <div>
-      <button
-        class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-        type="submit"
-      >
-        Login with Google
-      </button>
-    </div>
-  </form>
-{/if}
-
 <div class="mt-4">
   {#if loading}
     <LoadingSpinner />
