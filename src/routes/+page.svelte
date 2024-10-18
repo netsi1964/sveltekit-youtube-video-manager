@@ -5,7 +5,6 @@
   import Tags from "$lib/Tags.svelte";
   import { setError } from "$lib/stores/errorStore.js";
   import { videoStore, setVideos } from "$lib/stores/videoStore.js";
-
   import { user } from "$lib/stores/userStore";
 
   export let data;
@@ -22,11 +21,23 @@
   let error = null;
   let fetchingFromYouTube = false;
 
-  $: {
-    if (data.videos && Array.isArray(data.videos)) {
-      setVideos(data.videos);
+  onMount(async () => {
+    if ($user) {
+      try {
+        const response = await fetch("/api/videos");
+        if (response.ok) {
+          const data = await response.json();
+          setVideos(data.videos);
+          initializeFuseSearch();
+        } else {
+          console.error("Failed to fetch videos");
+        }
+      } catch (error) {
+        console.error("Error fetching videos:", error);
+      }
     }
-  }
+    loading = false;
+  });
 
   $: {
     if (fuse && searchTerm) {
@@ -52,16 +63,6 @@
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
-  let mounted = false;
-
-  onMount(() => {
-    if ($videoStore.length > 0) {
-      initializeFuseSearch();
-    }
-    loading = false;
-    mounted = true;
-  });
 
   function initializeFuseSearch() {
     const options = {
@@ -140,6 +141,18 @@
 <div class="mt-4">
   {#if loading}
     <LoadingSpinner />
+  {:else if !$user}
+    <div class="text-center">
+      <p class="text-xl mb-4">Please log in to view and manage your videos.</p>
+      <form class="auth-form" method="post" action="?/OAuth2">
+        <button
+          class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+          type="submit"
+        >
+          Login with Google
+        </button>
+      </form>
+    </div>
   {:else if error}
     <p class="text-red-500">Error: {error}</p>
   {:else}

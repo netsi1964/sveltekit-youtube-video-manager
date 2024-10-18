@@ -1,5 +1,7 @@
 import { json } from "@sveltejs/kit";
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } from "$env/static/private";
+import fs from "fs/promises";
+import path from "path";
 
 export async function GET({ request, fetch }) {
   const authHeader = request.headers.get("Authorization");
@@ -39,7 +41,15 @@ export async function GET({ request, fetch }) {
         thumbnails: item.snippet.thumbnails,
         publishedAt: item.snippet.publishedAt,
       },
+      statistics: {
+        viewCount: "0",
+        likeCount: "0",
+      },
     }));
+
+    // Save videos to a JSON file
+    const filePath = path.join(process.cwd(), "src", "lib", "videos.json");
+    await fs.writeFile(filePath, JSON.stringify(videos, null, 2));
 
     return json({ videos });
   } catch (error) {

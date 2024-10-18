@@ -1,29 +1,49 @@
 import { error } from "@sveltejs/kit";
+import fs from "fs/promises";
+import path from "path";
 
-export async function load({ params, fetch }) {
+export async function load({ params }) {
+  const { id } = params;
+
   try {
-    console.log(`[GET /edit/${params.id}] Attempting to load video`);
-    const response = await fetch(`/api/videos/${params.id}`);
+    const filePath = path.join(process.cwd(), "src", "lib", "videos.json");
+    const fileContent = await fs.readFile(filePath, "utf-8");
+    const videos = JSON.parse(fileContent);
 
-    console.log(`[GET /edit/${params.id}] Response status:`, response.status);
+    const video = videos.find((v) => v.id === id);
 
-    if (response.status === 404) {
-      console.log(`[GET /edit/${params.id}] Video not found`);
-      return { id: params.id, video: null };
+    if (!video) {
+      throw error(404, `Video with ID ${id} not found`);
     }
 
-    if (!response.ok) {
-      console.error(`[GET /edit/${params.id}] Error response`);
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const video = await response.json();
-    console.log(`[GET /edit/${params.id}] Loaded video`);
-    return { id: params.id, video };
+    return { video };
   } catch (err) {
-    console.error(`[GET /edit/${params.id}] Error loading video`);
-    throw error(500, {
-      message: "Failed to load video",
-    });
+    console.error("Error loading video:", err);
+    throw error(500, "Failed to load video");
   }
 }
+
+export const actions = {
+  default: async ({ request, params }) => {
+    const formData = await request.formData();
+    const updatedVideo = JSON.parse(formData.get("video"));
+
+    try {
+      const filePath = path.join(process.cwd(), "src", "lib", "videos.json");
+      const fileContent = await fs.readFile(filePath, "utf-8");
+      let videos = JSON.parse(fileContent);
+
+      const index = videos.findIndex((v) => v.id === params.id);
+      if (index !== -1) {
+        videos[index] = updatedVideo;
+        await fs.writeFile(filePath, JSON.stringify(videos, null, 2));
+        return { success: true };
+      } else {
+        throw error(404, `Video with ID ${params.id} not found`);
+      }
+    } catch (err) {
+      console.error("Error updating video:", err);
+      throw error(500, "Failed to update video");
+    }
+  },
+};
