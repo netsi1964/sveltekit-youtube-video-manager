@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import { createFuzzySearch } from "$lib/FuzzySearch.js";
+  import Fuse from "fuse.js";
   import LoadingSpinner from "$lib/LoadingSpinner.svelte";
   import Tags from "$lib/Tags.svelte";
   import { setError } from "$lib/stores/errorStore.js";
@@ -28,7 +28,6 @@
         if (response.ok) {
           const data = await response.json();
           setVideos(data.videos);
-          initializeFuseSearch();
         } else {
           console.error("Failed to fetch videos");
         }
@@ -40,6 +39,10 @@
   });
 
   $: {
+    if ($videoStore.length > 0 && !fuse) {
+      initializeFuseSearch();
+    }
+
     if (fuse && searchTerm) {
       filteredVideos = fuse.search(searchTerm).map((result) => result.item);
     } else {
@@ -75,8 +78,18 @@
         "statistics.likeCount",
       ],
       threshold: 0.4,
+      includeScore: true,
     };
-    fuse = createFuzzySearch($videoStore, options);
+    fuse = new Fuse($videoStore, options);
+  }
+
+  function handleSearch() {
+    if (fuse && searchTerm) {
+      filteredVideos = fuse.search(searchTerm).map((result) => result.item);
+    } else {
+      filteredVideos = [...$videoStore];
+    }
+    currentPage = 1;
   }
 
   async function fetchVideosFromYouTube() {
@@ -163,6 +176,7 @@
         type="text"
         placeholder="Search videos..."
         bind:value={searchTerm}
+        on:input={handleSearch}
         class="w-full p-2 border rounded mb-4"
       />
       {#if searchTerm}
