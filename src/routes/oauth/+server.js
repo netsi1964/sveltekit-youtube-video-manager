@@ -1,7 +1,5 @@
 import { redirect } from "@sveltejs/kit";
 import { OAuth2Client } from "google-auth-library";
-import { setUser } from "$lib/stores/userStore";
-
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } from "$env/static/private";
 
 async function getUserData(access_token) {
@@ -9,8 +7,7 @@ async function getUserData(access_token) {
     `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${access_token}`
   );
   const data = await response.json();
-  setUser(data);
-  return data;
+  return { ...data, accessToken: access_token };
 }
 
 export const GET = async (event) => {
@@ -26,16 +23,24 @@ export const GET = async (event) => {
       redirectURL
     );
     const r = await oAuth2Client.getToken(code);
-    // Make sure to set the credentials on the OAuth2 client.
     oAuth2Client.setCredentials(r.tokens);
     const user = oAuth2Client.credentials;
 
     userData = await getUserData(user.access_token);
+    console.log("User data:", userData);
   } catch (err) {
-    console.log("Error logging in with OAuth2 user", err);
+    console.error("Error logging in with OAuth2 user", err);
   }
 
-  cookies.set("userData", JSON.stringify(userData), { path: "/" });
+  if (userData) {
+    cookies.set("userData", JSON.stringify(userData), {
+      path: "/",
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+    });
+  }
 
   throw redirect(303, "/");
 };

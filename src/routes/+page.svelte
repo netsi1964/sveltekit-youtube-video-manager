@@ -81,17 +81,26 @@
   async function fetchVideosFromYouTube() {
     fetchingFromYouTube = true;
     try {
-      const response = await fetch("/api/fetch-youtube-videos", {
-        method: "POST",
+      if (!$user || !$user.accessToken) {
+        throw new Error("User not authenticated");
+      }
+      const response = await fetch("/api/youtube-videos", {
+        headers: {
+          Authorization: `Bearer ${$user.accessToken}`,
+        },
       });
       if (!response.ok) {
-        throw new Error("Failed to fetch videos from YouTube");
+        const errorData = await response.json();
+        throw new Error(
+          `Failed to fetch videos from YouTube: ${errorData.error}`
+        );
       }
       const data = await response.json();
       setVideos(data.videos);
       initializeFuseSearch();
     } catch (error) {
       setError(error.message);
+      console.error("Error fetching YouTube videos:", error);
     } finally {
       fetchingFromYouTube = false;
     }

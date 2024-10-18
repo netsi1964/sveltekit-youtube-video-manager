@@ -32,7 +32,12 @@ export const actions = {
     // Generate the url that will be used for the consent dialog.
     const authorizeUrl = oAuth2Client.generateAuthUrl({
       access_type: "offline",
-      scope: "https://www.googleapis.com/auth/userinfo.profile  openid ",
+      scope: [
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/youtube",
+        "openid",
+      ],
       prompt: "consent",
     });
 
