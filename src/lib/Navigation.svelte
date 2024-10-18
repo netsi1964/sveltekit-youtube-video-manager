@@ -1,8 +1,10 @@
 <script>
   import { page } from "$app/stores";
-  import { user } from "./stores/userStore.js";
+  import { user, clearUser } from "$lib/stores/userStore";
   import { localChangesCount } from "./stores/localChangesStore.js";
   import { videoStore } from "./stores/videoStore.js";
+  import { browser } from "$app/environment";
+  import { goto } from "$app/navigation";
 
   $: routes = [
     { path: "/", label: "Home" },
@@ -16,6 +18,11 @@
   ];
 
   $: videoCount = $videoStore.length;
+
+  function handleLogout() {
+    clearUser();
+    goto("/"); // Redirect to home page after logout
+  }
 </script>
 
 <nav class="bg-blue-600 shadow-lg">
@@ -42,18 +49,27 @@
           </div>
         </div>
         <div class="flex gap-2 items-center text-white text-sm ml-auto mr-4">
-          {#if $user}
-            {$user.name}
+          {#if browser && $user}
+            <div
+              class="flex items-center space-x-2 px-3 py-2 rounded-md bg-blue-700"
+            >
+              <span class="text-lg">👤</span>
+              <span>{$user.name}</span>
+            </div>
+            <button
+              on:click={handleLogout}
+              class="px-3 py-2 rounded-md bg-blue-500 hover:bg-blue-600 transition-colors duration-200 ease-in-out"
+            >
+              Logout
+            </button>
           {:else}
             <form class="auth-form" method="post" action="?/OAuth2">
-              <div>
-                <button
-                  class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-                  type="submit"
-                >
-                  Login with Google
-                </button>
-              </div>
+              <button
+                class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                type="submit"
+              >
+                Login with Google
+              </button>
             </form>
           {/if}
 

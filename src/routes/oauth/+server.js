@@ -10,11 +10,14 @@ async function getUserData(access_token) {
   );
   const data = await response.json();
   setUser(data);
+  return data;
 }
 
-export const GET = async ({ url }) => {
+export const GET = async (event) => {
+  const { url, cookies } = event;
   const redirectURL = "http://localhost:5173/oauth";
   const code = await url.searchParams.get("code");
+  let userData;
 
   try {
     const oAuth2Client = new OAuth2Client(
@@ -27,10 +30,12 @@ export const GET = async ({ url }) => {
     oAuth2Client.setCredentials(r.tokens);
     const user = oAuth2Client.credentials;
 
-    await getUserData(user.access_token);
+    userData = await getUserData(user.access_token);
   } catch (err) {
     console.log("Error logging in with OAuth2 user", err);
   }
+
+  cookies.set("userData", JSON.stringify(userData), { path: "/" });
 
   throw redirect(303, "/");
 };

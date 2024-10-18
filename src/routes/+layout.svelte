@@ -4,8 +4,19 @@
   import ErrorHandler from "$lib/ErrorHandler.svelte";
   import { onMount } from "svelte";
   import { setVideos } from "$lib/stores/videoStore.js";
+  import { setUser } from "$lib/stores/userStore";
 
   onMount(async () => {
+    try {
+      const response = await fetch("/api/user");
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error("Failed to fetch user data:", error);
+    }
+
     try {
       const response = await fetch("/api/videos");
       if (response.ok) {
