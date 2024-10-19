@@ -116,5 +116,60 @@
         "commentCount": "0"
       }
     }
+  ],
+  "Netsi": [
+    {
+      "id": "fc8BGIjV_mI",
+      "snippet": {
+        "publishedAt": "2015-08-21T07:25:27Z",
+        "channelId": "UCeIZSz6_4qGpuH7FbxePygg",
+        "title": "Visual Style Inspector in Webkit/Safari (Nightly)",
+        "description": "The latest version of Webkit (Safari) has a cool visual inspector for editing the styles of a webpage. This video shows an example of editing a pen from CodePen: http://codepen.io/netsi1964/pen/KpjNOY",
+        "thumbnails": {
+          "default": {
+            "url": "https://i.ytimg.com/vi/fc8BGIjV_mI/default.jpg",
+            "width": 120,
+            "height": 90
+          },
+          "medium": {
+            "url": "https://i.ytimg.com/vi/fc8BGIjV_mI/mqdefault.jpg",
+            "width": 320,
+            "height": 180
+          },
+          "high": {
+            "url": "https://i.ytimg.com/vi/fc8BGIjV_mI/hqdefault.jpg",
+            "width": 480,
+            "height": 360
+          },
+          "standard": {
+            "url": "https://i.ytimg.com/vi/fc8BGIjV_mI/sddefault.jpg",
+            "width": 640,
+            "height": 480
+          }
+        },
+        "channelTitle": "Netsi",
+        "tags": [
+          "Safari (Web Browser)",
+          "WebKit (HTML Layout Engine)",
+          "Style",
+          "News",
+          "HTML (Programming Language)",
+          "test"
+        ],
+        "categoryId": "22",
+        "liveBroadcastContent": "none",
+        "localized": {
+          "title": "Visual Style Inspector in Webkit/Safari (Nightly)",
+          "description": "The latest version of Webkit (Safari) has a cool visual inspector for editing the styles of a webpage. This video shows an example of editing a pen from CodePen: http://codepen.io/netsi1964/pen/KpjNOY"
+        }
+      },
+      "statistics": {
+        "viewCount": "612",
+        "likeCount": "0",
+        "dislikeCount": "0",
+        "favoriteCount": "0",
+        "commentCount": "0"
+      }
+    }
   ]
 }

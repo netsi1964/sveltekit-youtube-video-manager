@@ -10,6 +10,7 @@
     updateVideo,
     getVideoById,
   } from "$lib/stores/videoStore.js";
+  import { updateLocalChanges } from "$lib/stores/localChangesStore.js";
 
   export let data;
 
@@ -90,12 +91,8 @@
 
       updateVideo(video);
 
-      // Fetch the updated local changes count
-      const localChangesResponse = await fetch("/api/local-changes");
-      if (localChangesResponse.ok) {
-        const localChangesData = await localChangesResponse.json();
-        localChangesCount.set(localChangesData.count);
-      }
+      // Update the local changes
+      await updateLocalChanges();
 
       modalMessage = "Changes saved locally!";
       showModal = true;

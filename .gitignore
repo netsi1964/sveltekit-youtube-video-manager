@@ -1,3 +1,9 @@
 node_modules
 .env
-src/lib/user_videos.json
+
+**/data/local-changes.json
+**/data/videos.json
+**/src/lib/local-changes.json
+**/src/lib/videos.json
+**/local-changes.json
+**/videos.json

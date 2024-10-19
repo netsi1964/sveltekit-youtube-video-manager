@@ -1,11 +1,14 @@
 <script>
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
-  import { localChangesCount } from "$lib/stores/localChangesStore.js";
+  import {
+    localChanges,
+    updateLocalChanges,
+    localChangesCount,
+  } from "$lib/stores/localChangesStore.js";
   import { setError } from "$lib/stores/errorStore.js";
   import Tags from "$lib/Tags.svelte";
 
-  let localChanges = [];
   let selectedVideos = {};
   let isSyncing = false;
   let currentVideo = "";
@@ -17,31 +20,23 @@
   let syncDuration = 0;
 
   onMount(async () => {
-    await loadLocalChanges();
+    await updateLocalChanges();
   });
 
-  async function loadLocalChanges() {
+  async function fetchLocalChanges() {
     try {
-      const response = await fetch("/api/local-changes");
-      if (!response.ok) {
-        throw new Error("Failed to load local changes");
-      }
-      const data = await response.json();
-      localChanges = data.videos;
-      localChangesCount.set(data.count);
-      selectedVideos = Object.fromEntries(
-        localChanges.map((video) => [video.id, true])
-      );
-      totalVideos = localChanges.length;
+      await updateLocalChanges();
+      console.log("Fetched local changes:", $localChanges);
     } catch (error) {
-      setError(error.message);
+      console.error("Error fetching local changes:", error);
+      setError("Failed to load local changes");
     }
   }
 
   async function syncToYouTube() {
     isSyncing = true;
     syncComplete = false;
-    const videosToSync = localChanges.filter(
+    const videosToSync = $localChanges.filter(
       (video) => selectedVideos[video.id]
     );
     syncedVideosCount = 0;
@@ -82,6 +77,7 @@
       if (!response.ok) {
         throw new Error("Failed to remove video from local changes");
       }
+      await fetchLocalChanges(); // Refresh the local changes after removal
     } catch (error) {
       console.error("Error removing video from local changes:", error);
     }
@@ -93,7 +89,7 @@
 
   async function closeSyncModal() {
     syncComplete = false;
-    await loadLocalChanges(); // Reload local changes after closing the modal
+    await fetchLocalChanges(); // Reload local changes after closing the modal
   }
 
   function getVideoTags(video) {
@@ -108,7 +104,7 @@
 <div class="container mx-auto px-4 py-8">
   <h1 class="text-3xl font-bold mb-6">Sync Videos to YouTube</h1>
 
-  {#if localChanges.length > 0}
+  {#if $localChangesCount > 0}
     <div class="overflow-x-auto">
       <table class="min-w-full bg-white">
         <thead>
@@ -124,7 +120,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each localChanges as video (video.id)}
+          {#each $localChanges as video (video.id)}
             <tr class="hover:bg-gray-100">
               <td class="border px-4 py-2">
                 <input
@@ -196,7 +192,7 @@
               ></div>
             </div>
             <p class="text-center text-sm text-gray-600 mb-4">
-              {currentVideoIndex} of {localChanges.filter(
+              {currentVideoIndex} of {$localChanges.filter(
                 (v) => selectedVideos[v.id]
               ).length}
             </p>

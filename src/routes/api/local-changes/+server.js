@@ -2,22 +2,7 @@ import { json } from "@sveltejs/kit";
 import fs from "fs/promises";
 import path from "path";
 
-const CHANGES_FILE = path.join(process.cwd(), "changes.json");
-
-function readChanges() {
-  if (fs.existsSync(CHANGES_FILE)) {
-    const data = fs.readFileSync(CHANGES_FILE, "utf8");
-    return JSON.parse(data);
-  }
-  return {};
-}
-
-function writeChanges(changes) {
-  fs.writeFileSync(CHANGES_FILE, JSON.stringify(changes, null, 2));
-}
-
-const dataDir = path.join(process.cwd(), "data");
-const localChangesPath = path.join(dataDir, "local-changes.json");
+const localChangesPath = path.join(process.cwd(), "data", "local-changes.json");
 
 export async function GET({ locals }) {
   if (!locals.user || !locals.user.name) {
@@ -27,32 +12,59 @@ export async function GET({ locals }) {
   const userName = locals.user.name;
 
   try {
-    const localChangesPath = path.join(
-      process.cwd(),
-      "src",
-      "lib",
-      "local-changes.json"
-    );
-    const fileContent = await fs.readFile(localChangesPath, "utf-8");
-    const localChanges = JSON.parse(fileContent);
+    let localChanges = {};
+    try {
+      const fileContent = await fs.readFile(localChangesPath, "utf-8");
+      localChanges = JSON.parse(fileContent);
+    } catch (error) {
+      // File doesn't exist or is empty, start with an empty object
+    }
 
     const userChanges = localChanges[userName] || [];
     const count = userChanges.length;
 
-    return json({ count });
+    return json({ count, changes: userChanges });
   } catch (error) {
     console.error("Error reading local changes:", error);
     return json({ error: "Failed to read local changes" }, { status: 500 });
   }
 }
 
-export async function PUT({ params, request }) {
-  const videoId = params.id;
+export async function PUT({ request, locals }) {
+  if (!locals.user || !locals.user.name) {
+    return json({ error: "User not authenticated" }, { status: 401 });
+  }
+
+  const userName = locals.user.name;
   const updatedVideo = await request.json();
 
-  const changes = readChanges();
-  changes[videoId] = updatedVideo;
-  writeChanges(changes);
+  try {
+    let localChanges = {};
+    try {
+      const fileContent = await fs.readFile(localChangesPath, "utf-8");
+      localChanges = JSON.parse(fileContent);
+    } catch (error) {
+      // File doesn't exist or is empty, start with an empty object
+    }
 
-  return json({ success: true });
+    if (!localChanges[userName]) {
+      localChanges[userName] = [];
+    }
+
+    const index = localChanges[userName].findIndex(
+      (v) => v.id === updatedVideo.id
+    );
+    if (index !== -1) {
+      localChanges[userName][index] = updatedVideo;
+    } else {
+      localChanges[userName].push(updatedVideo);
+    }
+
+    await fs.writeFile(localChangesPath, JSON.stringify(localChanges, null, 2));
+
+    return json({ success: true });
+  } catch (error) {
+    console.error("Error saving local changes:", error);
+    return json({ error: "Failed to save local changes" }, { status: 500 });
+  }
 }

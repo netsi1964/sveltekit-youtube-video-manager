@@ -36,14 +36,7 @@ export async function PUT({ params, request, locals }) {
   try {
     const updatedVideo = await request.json();
 
-    const localChangesPath = path.join(
-      process.cwd(),
-      "src",
-      "lib",
-      "local-changes.json"
-    );
     let localChanges = {};
-
     try {
       const fileContent = await fs.readFile(localChangesPath, "utf-8");
       localChanges = JSON.parse(fileContent);
@@ -71,19 +64,29 @@ export async function PUT({ params, request, locals }) {
   }
 }
 
-export async function DELETE({ params }) {
+export async function DELETE({ params, locals }) {
   const { id } = params;
 
+  if (!locals.user || !locals.user.name) {
+    return json({ error: "User not authenticated" }, { status: 401 });
+  }
+
+  const userName = locals.user.name;
+
   try {
-    // Read the current local changes
+    let localChanges = {};
     const fileContent = await fs.readFile(localChangesPath, "utf-8");
-    let localChanges = JSON.parse(fileContent);
+    localChanges = JSON.parse(fileContent);
 
-    // Remove the specified video
-    delete localChanges[id];
-
-    // Write the updated changes back to the file
-    await fs.writeFile(localChangesPath, JSON.stringify(localChanges, null, 2));
+    if (localChanges[userName]) {
+      localChanges[userName] = localChanges[userName].filter(
+        (video) => video.id !== id
+      );
+      await fs.writeFile(
+        localChangesPath,
+        JSON.stringify(localChanges, null, 2)
+      );
+    }
 
     return json({
       success: true,
@@ -92,7 +95,7 @@ export async function DELETE({ params }) {
   } catch (error) {
     console.error("Error removing video from local changes:", error);
     return json(
-      { success: false, message: "Failed to remove video from local changes" },
+      { error: "Failed to remove video from local changes" },
       { status: 500 }
     );
   }

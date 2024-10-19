@@ -1,10 +1,18 @@
 <script>
   import { page } from "$app/stores";
   import { user, clearUser } from "$lib/stores/userStore";
-  import { localChangesCount } from "./stores/localChangesStore.js";
+  import {
+    localChangesCount,
+    updateLocalChanges,
+  } from "./stores/localChangesStore.js";
   import { videoStore } from "./stores/videoStore.js";
   import { browser } from "$app/environment";
   import { goto } from "$app/navigation";
+  import { onMount } from "svelte";
+
+  onMount(async () => {
+    await updateLocalChanges();
+  });
 
   $: routes = [
     { path: "/", label: "Home" },
