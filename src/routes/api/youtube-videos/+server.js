@@ -3,13 +3,19 @@ import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } from "$env/static/private";
 import fs from "fs/promises";
 import path from "path";
 
-export async function GET({ request, fetch }) {
+export async function GET({ request, fetch, locals }) {
   const authHeader = request.headers.get("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const accessToken = authHeader.split(" ")[1];
+
+  if (!locals.user || !locals.user.name) {
+    return json({ error: "User not authenticated" }, { status: 401 });
+  }
+
+  const userName = locals.user.name;
 
   try {
     const response = await fetch(
@@ -47,9 +53,17 @@ export async function GET({ request, fetch }) {
       },
     }));
 
-    // Save videos to a JSON file
-    const filePath = path.join(process.cwd(), "src", "lib", "videos.json");
-    await fs.writeFile(filePath, JSON.stringify(videos, null, 2));
+    // Save videos to a JSON file with user name as the key
+    const filePath = path.join(process.cwd(), "src", "lib", "user_videos.json");
+    let userVideos = {};
+    try {
+      const fileContent = await fs.readFile(filePath, "utf-8");
+      userVideos = JSON.parse(fileContent);
+    } catch (error) {
+      // File doesn't exist or is empty, start with an empty object
+    }
+    userVideos[userName] = videos;
+    await fs.writeFile(filePath, JSON.stringify(userVideos, null, 2));
 
     return json({ videos });
   } catch (error) {

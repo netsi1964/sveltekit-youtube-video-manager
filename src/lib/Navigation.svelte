@@ -19,9 +19,18 @@
 
   $: videoCount = $videoStore.length;
 
-  function handleLogout() {
-    clearUser();
-    goto("/"); // Redirect to home page after logout
+  async function handleLogout() {
+    try {
+      const response = await fetch("/api/logout", { method: "POST" });
+      if (response.ok) {
+        clearUser();
+        goto("/", { replaceState: true });
+      } else {
+        console.error("Logout failed");
+      }
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
   }
 </script>
 

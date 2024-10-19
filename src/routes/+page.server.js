@@ -2,14 +2,22 @@ import { redirect, error } from "@sveltejs/kit";
 import { OAuth2Client } from "google-auth-library";
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } from "$env/static/private";
 
-export async function load({ fetch }) {
+export async function load({ fetch, locals }) {
+  if (!locals.user) {
+    return { videos: [], user: null };
+  }
+
   try {
     const response = await fetch("/api/videos");
+    if (response.status === 401) {
+      // User is not authenticated
+      return { videos: [], user: null };
+    }
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const videos = await response.json();
-    return { videos: videos }; // Ensure we're returning { videos: [...] }
+    return { videos: videos.videos, user: locals.user };
   } catch (err) {
     console.error("Error loading videos:", err);
     throw error(500, {

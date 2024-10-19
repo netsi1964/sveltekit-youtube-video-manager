@@ -21,19 +21,19 @@
   let error = null;
   let fetchingFromYouTube = false;
 
-  onMount(async () => {
-    if ($user) {
-      try {
-        const response = await fetch("/api/videos");
-        if (response.ok) {
-          const data = await response.json();
-          setVideos(data.videos);
-        } else {
-          console.error("Failed to fetch videos");
-        }
-      } catch (error) {
-        console.error("Error fetching videos:", error);
-      }
+  $: {
+    if (data.user) {
+      $user = data.user;
+      console.log("Current user:", $user.name); // Log the user's name for debugging
+    }
+    if (data.videos) {
+      setVideos(data.videos);
+    }
+  }
+
+  onMount(() => {
+    if ($videoStore.length > 0) {
+      initializeFuseSearch();
     }
     loading = false;
   });
@@ -129,21 +129,16 @@
     }
   }
 
-  function handleRowClick(id) {
-    window.location.href = `/edit/${id}`;
+  function handleRowClick(videoId) {
+    window.location.href = `/edit/${videoId}`;
   }
 
   function getVideoTags(video) {
-    return video.snippet && video.snippet.tags ? video.snippet.tags : [];
+    return video.snippet?.tags || [];
   }
 
   function handleTagChange(video, event) {
-    const { tags } = event.detail;
-    if (!video.snippet) video.snippet = {};
-    video.snippet.tags = tags;
-    videoStore.update((videos) =>
-      videos.map((v) => (v.id === video.id ? video : v))
-    );
+    // Implement tag change logic here
   }
 </script>
 
@@ -190,7 +185,7 @@
             <tr>
               <th class="px-4 py-2">Thumbnail</th>
               <th
-                class="px-4 py-2 cursor-pointer"
+                class="px-4 py-2 cursor-pointer w-[450px]"
                 on:click={() => handleSort("title")}
               >
                 Title {sortField === "title"
@@ -229,16 +224,6 @@
                     : "▼"
                   : ""}
               </th>
-              <th
-                class="px-4 py-2 cursor-pointer"
-                on:click={() => handleSort("publishedAt")}
-              >
-                Last Updated {sortField === "publishedAt"
-                  ? sortDirection === "asc"
-                    ? "▲"
-                    : "▼"
-                  : ""}
-              </th>
               <th class="px-4 py-2">Tags</th>
             </tr>
           </thead>
@@ -257,7 +242,7 @@
                     class="object-cover"
                   />
                 </td>
-                <td class="border px-4 py-2"
+                <td class="border px-4 py-2 w-[450px]"
                   >{video.snippet?.title || "No title"}</td
                 >
                 <td class="border px-4 py-2"
@@ -267,13 +252,10 @@
                   >{video.statistics?.likeCount?.toLocaleString() || "N/A"}</td
                 >
                 <td class="border px-4 py-2"
-                  >{video.snippet?.publishedAt || "N/A"}</td
+                  >{video.snippet?.publishedAt
+                    ? new Date(video.snippet.publishedAt).toLocaleDateString()
+                    : "N/A"}</td
                 >
-                <td class="border px-4 py-2">
-                  {video.snippet?.publishedAt
-                    ? new Date(video.snippet.publishedAt).toLocaleString()
-                    : "N/A"}
-                </td>
                 <td class="border px-4 py-2">
                   <Tags
                     readOnly={true}
@@ -288,22 +270,17 @@
       </div>
 
       {#if totalPages > 1}
-        <div class="mt-4 flex justify-between items-center">
-          <button
-            on:click={() => currentPage--}
-            disabled={currentPage === 1}
-            class="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
-          >
-            Previous
-          </button>
-          <span>Page {currentPage} of {totalPages}</span>
-          <button
-            on:click={() => currentPage++}
-            disabled={currentPage === totalPages}
-            class="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300"
-          >
-            Next
-          </button>
+        <div class="mt-4 flex justify-center">
+          {#each Array(totalPages) as _, i}
+            <button
+              class="mx-1 px-3 py-1 border rounded {currentPage === i + 1
+                ? 'bg-blue-500 text-white'
+                : 'bg-white text-blue-500'}"
+              on:click={() => (currentPage = i + 1)}
+            >
+              {i + 1}
+            </button>
+          {/each}
         </div>
       {/if}
     {/if}
