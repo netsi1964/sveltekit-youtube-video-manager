@@ -181,6 +181,10 @@
     // If you need to trigger any updates or validations
     metaData = { ...metaData };
   }
+
+  function getYouTubeUrl(videoId) {
+    return `https://www.youtube.com/watch?v=${videoId}`;
+  }
 </script>
 
 <svelte:head>
@@ -224,6 +228,18 @@
 
     <div class="mt-4">
       {#if activeTab === "youtube"}
+        <div class="mb-4">
+          <h2 class="text-xl font-bold mb-2">YouTube Video</h2>
+          <p>Video ID: {data.video.id}</p>
+          <a
+            href={getYouTubeUrl(data.video.id)}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-blue-500 hover:text-blue-700"
+          >
+            View on YouTube
+          </a>
+        </div>
         <form on:submit|preventDefault={handleSubmit} class="space-y-4">
           <div>
             <label for="title" class="block text-sm font-medium text-gray-700"

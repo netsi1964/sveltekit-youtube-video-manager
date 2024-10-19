@@ -243,8 +243,17 @@
                   />
                 </td>
                 <td class="border px-4 py-2 w-[450px]"
-                  >{video.snippet?.title || "No title"}</td
-                >
+                  >{video.snippet?.title || "No title"}
+                  <a
+                    href={`https://www.youtube.com/watch?v=${video.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="ml-2 text-blue-500 hover:text-blue-700"
+                    on:click|stopPropagation
+                  >
+                    View
+                  </a>
+                </td>
                 <td class="border px-4 py-2"
                   >{video.statistics?.viewCount?.toLocaleString() || "N/A"}</td
                 >
