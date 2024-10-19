@@ -18,8 +18,9 @@ export async function GET({ request, fetch, locals }) {
   const userName = locals.user.name;
 
   try {
-    const response = await fetch(
-      "https://youtube.googleapis.com/youtube/v3/search?part=snippet&forMine=true&type=video&maxResults=50",
+    // First, fetch the list of video IDs
+    const searchResponse = await fetch(
+      "https://youtube.googleapis.com/youtube/v3/search?part=id&forMine=true&type=video&maxResults=50",
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -28,29 +29,45 @@ export async function GET({ request, fetch, locals }) {
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
+    if (!searchResponse.ok) {
+      const errorData = await searchResponse.json();
       console.error("YouTube API error:", errorData);
       throw new Error(
-        `YouTube API responded with ${response.status}: ${JSON.stringify(
+        `YouTube API responded with ${searchResponse.status}: ${JSON.stringify(
           errorData
         )}`
       );
     }
 
-    const data = await response.json();
-    const videos = data.items.map((item) => ({
-      id: item.id.videoId,
-      snippet: {
-        title: item.snippet.title,
-        description: item.snippet.description,
-        thumbnails: item.snippet.thumbnails,
-        publishedAt: item.snippet.publishedAt,
-      },
-      statistics: {
-        viewCount: "0",
-        likeCount: "0",
-      },
+    const searchData = await searchResponse.json();
+    const videoIds = searchData.items.map((item) => item.id.videoId).join(",");
+
+    // Now, fetch the detailed information for these videos
+    const videosResponse = await fetch(
+      `https://youtube.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoIds}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
+      }
+    );
+
+    if (!videosResponse.ok) {
+      const errorData = await videosResponse.json();
+      console.error("YouTube API error:", errorData);
+      throw new Error(
+        `YouTube API responded with ${videosResponse.status}: ${JSON.stringify(
+          errorData
+        )}`
+      );
+    }
+
+    const videosData = await videosResponse.json();
+    const videos = videosData.items.map((item) => ({
+      id: item.id,
+      snippet: item.snippet,
+      statistics: item.statistics,
     }));
 
     // Save videos to a JSON file with user name as the key

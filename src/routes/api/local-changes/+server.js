@@ -19,27 +19,29 @@ function writeChanges(changes) {
 const dataDir = path.join(process.cwd(), "data");
 const localChangesPath = path.join(dataDir, "local-changes.json");
 
-export async function GET() {
+export async function GET({ locals }) {
+  if (!locals.user || !locals.user.name) {
+    return json({ error: "User not authenticated" }, { status: 401 });
+  }
+
+  const userName = locals.user.name;
+
   try {
+    const localChangesPath = path.join(
+      process.cwd(),
+      "src",
+      "lib",
+      "local-changes.json"
+    );
     const fileContent = await fs.readFile(localChangesPath, "utf-8");
     const localChanges = JSON.parse(fileContent);
 
-    const videosWithChanges = Object.entries(localChanges).map(
-      ([id, changes]) => ({
-        id,
-        ...changes,
-      })
-    );
+    const userChanges = localChanges[userName] || [];
+    const count = userChanges.length;
 
-    return json({
-      videos: videosWithChanges,
-      count: videosWithChanges.length,
-    });
+    return json({ count });
   } catch (error) {
-    if (error.code === "ENOENT") {
-      return json({ videos: [], count: 0 });
-    }
-    console.error("Error reading local changes file:", error);
+    console.error("Error reading local changes:", error);
     return json({ error: "Failed to read local changes" }, { status: 500 });
   }
 }

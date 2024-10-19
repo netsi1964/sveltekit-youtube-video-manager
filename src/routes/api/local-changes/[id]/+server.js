@@ -24,50 +24,50 @@ export async function GET({ params }) {
   return json(localChanges);
 }
 
-export async function PUT({ params, request }) {
+export async function PUT({ params, request, locals }) {
   const { id } = params;
-  const data = await request.json();
 
-  // Define the path for the local changes file
-  const dataDir = path.join(process.cwd(), "data");
-  const localChangesPath = path.join(dataDir, "local-changes.json");
+  if (!locals.user || !locals.user.name) {
+    return json({ error: "User not authenticated" }, { status: 401 });
+  }
+
+  const userName = locals.user.name;
 
   try {
-    // Ensure the data directory exists
-    await fs.mkdir(dataDir, { recursive: true });
+    const updatedVideo = await request.json();
 
-    // Read the existing local changes
+    const localChangesPath = path.join(
+      process.cwd(),
+      "src",
+      "lib",
+      "local-changes.json"
+    );
     let localChanges = {};
+
     try {
       const fileContent = await fs.readFile(localChangesPath, "utf-8");
       localChanges = JSON.parse(fileContent);
     } catch (error) {
-      // If the file doesn't exist or is empty, start with an empty object
-      if (error.code !== "ENOENT") {
-        console.error("Error reading local changes file:", error);
-        throw error;
-      }
+      // File doesn't exist or is empty, start with an empty object
     }
 
-    // Update the changes for the given id
-    localChanges[id] = data;
+    if (!localChanges[userName]) {
+      localChanges[userName] = [];
+    }
 
-    // Write the updated changes back to the file
+    const index = localChanges[userName].findIndex((video) => video.id === id);
+    if (index !== -1) {
+      localChanges[userName][index] = updatedVideo;
+    } else {
+      localChanges[userName].push(updatedVideo);
+    }
+
     await fs.writeFile(localChangesPath, JSON.stringify(localChanges, null, 2));
 
-    const result = { success: true, message: `Changes for id ${id} updated` };
-    return json(result);
+    return json({ success: true });
   } catch (error) {
-    console.error("Error updating local changes:", error);
-    return json(
-      {
-        success: false,
-        message: "Failed to update local changes",
-        error: error.message,
-        stack: error.stack,
-      },
-      { status: 500 }
-    );
+    console.error("Error saving local changes:", error);
+    return json({ error: "Failed to save local changes" }, { status: 500 });
   }
 }
 

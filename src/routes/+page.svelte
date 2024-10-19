@@ -51,8 +51,34 @@
 
     // Sort the filtered videos
     filteredVideos = filteredVideos.sort((a, b) => {
-      const aValue = a.snippet ? a.snippet[sortField] : a[sortField];
-      const bValue = b.snippet ? b.snippet[sortField] : b[sortField];
+      let aValue, bValue;
+
+      switch (sortField) {
+        case "title":
+          aValue = a.snippet?.title;
+          bValue = b.snippet?.title;
+          break;
+        case "viewCount":
+          aValue = parseInt(a.statistics?.viewCount || "0", 10);
+          bValue = parseInt(b.statistics?.viewCount || "0", 10);
+          break;
+        case "likeCount":
+          aValue = parseInt(a.statistics?.likeCount || "0", 10);
+          bValue = parseInt(b.statistics?.likeCount || "0", 10);
+          break;
+        case "publishedAt":
+          aValue = new Date(a.snippet?.publishedAt || 0);
+          bValue = new Date(b.snippet?.publishedAt || 0);
+          break;
+        case "tags":
+          aValue = a.snippet?.tags?.length || 0;
+          bValue = b.snippet?.tags?.length || 0;
+          break;
+        default:
+          aValue = a[sortField];
+          bValue = b[sortField];
+      }
+
       if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
       if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
       return 0;
@@ -188,43 +214,77 @@
                 class="px-4 py-2 cursor-pointer w-[450px]"
                 on:click={() => handleSort("title")}
               >
-                Title {sortField === "title"
-                  ? sortDirection === "asc"
-                    ? "▲"
-                    : "▼"
-                  : ""}
+                <div class="flex items-center justify-between">
+                  <span>Title</span>
+                  <span
+                    >{sortField === "title"
+                      ? sortDirection === "asc"
+                        ? "▲"
+                        : "▼"
+                      : "  "}</span
+                  >
+                </div>
               </th>
               <th
                 class="px-4 py-2 cursor-pointer"
                 on:click={() => handleSort("viewCount")}
               >
-                Views {sortField === "viewCount"
-                  ? sortDirection === "asc"
-                    ? "▲"
-                    : "▼"
-                  : ""}
+                <div class="flex items-center justify-between">
+                  <span>Views</span>
+                  <span
+                    >{sortField === "viewCount"
+                      ? sortDirection === "asc"
+                        ? "▲"
+                        : "▼"
+                      : "  "}</span
+                  >
+                </div>
               </th>
               <th
                 class="px-4 py-2 cursor-pointer"
                 on:click={() => handleSort("likeCount")}
               >
-                Likes {sortField === "likeCount"
-                  ? sortDirection === "asc"
-                    ? "▲"
-                    : "▼"
-                  : ""}
+                <div class="flex items-center justify-between">
+                  <span>Likes</span>
+                  <span
+                    >{sortField === "likeCount"
+                      ? sortDirection === "asc"
+                        ? "▲"
+                        : "▼"
+                      : "  "}</span
+                  >
+                </div>
               </th>
               <th
                 class="px-4 py-2 cursor-pointer"
                 on:click={() => handleSort("publishedAt")}
               >
-                Upload Date {sortField === "publishedAt"
-                  ? sortDirection === "asc"
-                    ? "▲"
-                    : "▼"
-                  : ""}
+                <div class="flex items-center justify-between">
+                  <span>Upload Date</span>
+                  <span
+                    >{sortField === "publishedAt"
+                      ? sortDirection === "asc"
+                        ? "▲"
+                        : "▼"
+                      : "  "}</span
+                  >
+                </div>
               </th>
-              <th class="px-4 py-2">Tags</th>
+              <th
+                class="px-4 py-2 cursor-pointer"
+                on:click={() => handleSort("tags")}
+              >
+                <div class="flex items-center justify-between">
+                  <span>Tags</span>
+                  <span
+                    >{sortField === "tags"
+                      ? sortDirection === "asc"
+                        ? "▲"
+                        : "▼"
+                      : "  "}</span
+                  >
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
